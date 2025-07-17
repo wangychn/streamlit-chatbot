@@ -1,24 +1,23 @@
 import os
-from dotenv import load_dotenv
-from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI
 import json
-
+from dotenv import load_dotenv
 from typing import Annotated
 from typing_extensions import TypedDict
+from IPython.display import Image, display
 
+# LangGraph imports
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, END, MessagesState, StateGraph
 from langgraph.graph.message import add_messages
-from langgraph.checkpoint.memory import MemorySaver
 
+# LangChain imports
+from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_tavily import TavilySearch
-
 from langchain_core.messages import SystemMessage, trim_messages
-
-from IPython.display import Image, display
+from langgraph.prebuilt import ToolNode, tools_condition
 
 load_dotenv()
 
@@ -73,77 +72,82 @@ def chatbot(state: State):
     return {"messages": response}
 
 
-class BasicToolNode:
-    """Node that runs the tools requested in the last AIMessage"""
+# class BasicToolNode:
+#     """Node that runs the tools requested in the last AIMessage"""
 
-    def __init__(self, tools: list) -> None:
-        self.tools_by_name = {tool.name: tool for tool in tools}
+#     def __init__(self, tools: list) -> None:
+#         self.tools_by_name = {tool.name: tool for tool in tools}
 
-    def __call__(self, inputs: dict):
-        messages = inputs.get("messages", [])
-        if messages:
-            message = messages[-1]
-        else:
-            raise ValueError("No messages found in the input")
+#     def __call__(self, inputs: dict):
+#         messages = inputs.get("messages", [])
+#         if messages:
+#             message = messages[-1]
+#         else:
+#             raise ValueError("No messages found in the input")
 
-        outputs = []
+#         outputs = []
 
-        for tool_call in message.tool_calls:
-            args = tool_call.get("args", {})
-            tool_name = tool_call.get("name", {})
+#         for tool_call in message.tool_calls:
+#             args = tool_call.get("args", {})
+#             tool_name = tool_call.get("name", {})
 
-            if tool_name == "tavily_search":
-                query_arg = args.get("query", "")
-                if not isinstance(query_arg, str) or not query_arg.strip():
-                    continue
+#             if tool_name == "tavily_search":
+#                 query_arg = args.get("query", "")
+#                 if not isinstance(query_arg, str) or not query_arg.strip():
+#                     continue
             
-            tool = self.tools_by_name.get(tool_name)
-            if not tool:
-                raise ValueError(f"Tool {tool_name} not found")
+#             tool = self.tools_by_name.get(tool_name)
+#             if not tool:
+#                 raise ValueError(f"Tool {tool_name} not found")
 
-            # Call the tool with the arguments provided in the tool call
-            tool_result = tool.invoke(args)
-            outputs.append(
-                ToolMessage(
-                    content=json.dumps(tool_result, default=str),
-                    name=tool_call["name"],
-                    tool_call_id=tool_call["id"],
-                )
-            )
-        return {"messages": outputs}
+#             # Call the tool with the arguments provided in the tool call
+#             tool_result = tool.invoke(args)
+#             outputs.append(
+#                 ToolMessage(
+#                     content=json.dumps(tool_result, default=str),
+#                     name=tool_call["name"],
+#                     tool_call_id=tool_call["id"],
+#                 )
+#             )
+#         return {"messages": outputs}
 
 
-def route_tools(state: State):
-    """
-    Use in the conditional_edge to route to the ToolNode if last message has tool calls
-    """
-    if isinstance(state, list):
-        ai_message = state[-1]
-    elif state.get("messages", []):
-        ai_message = state.get("messages", [])[-1]
-    else:
-        raise ValueError("State does not contain messages")
+# def route_tools(state: State):
+#     """
+#     Use in the conditional_edge to route to the ToolNode if last message has tool calls
+#     """
+#     if isinstance(state, list):
+#         ai_message = state[-1]
+#     elif state.get("messages", []):
+#         ai_message = state.get("messages", [])[-1]
+#     else:
+#         raise ValueError("State does not contain messages")
     
-    # Return the correct path
-    if hasattr(ai_message, "tool_calls") and len(ai_message.tool_calls) > 0:
-        return "tools"
-    return END
+#     # Return the correct path
+#     if hasattr(ai_message, "tool_calls") and len(ai_message.tool_calls) > 0:
+#         return "tools"
+#     return END
 
 # <=====================- Build the Graph -=====================>
 
 workflow = StateGraph(state_schema=State)
 
-tool_node = BasicToolNode(tools=[tool])
+# tool_node = BasicToolNode(tools=[tool])
+tool_node = ToolNode(tools=[tool])
 
-# Node name: Chatbot, Action: call the chatbot function
+# Node name: Chatbot | Action: call the chatbot function
 workflow.add_node("chatbot", chatbot)
 workflow.add_node("tools", tool_node)
 
 # Add entry point
 workflow.add_edge(START, "chatbot")
 
-tool_node = BasicToolNode(tools=[tool])
-workflow.add_conditional_edges("chatbot", route_tools, {"tools": "tools", END: END})
+# Call tools conditionally
+workflow.add_conditional_edges(
+    "chatbot", 
+    tools_condition)
+
+# Return tool output when called
 workflow.add_edge("tools", "chatbot")
 
 memory = MemorySaver()
