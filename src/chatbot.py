@@ -77,23 +77,25 @@ class chatbot:
         self.graph = self.workflow.compile(checkpointer=self.memory)
 
         # Optional: Visualize the graph
-        with open("graph.png", "wb") as f:
+        with open("chatbot_graph.png", "wb") as f:
             f.write(self.graph.get_graph().draw_mermaid_png())
         print("Graph image saved as graph.png")
 
 
-    def run(self):
+    def invoke(self, user_input):
         """
-        Starts the chatbot look
-        TODO: Determine how this will work with the streamlit frontend, and if this is needed
+        Takes a single input message and call the graph, streaming the output
         """
-        pass
 
-    def _stream_graph_updates(self, user_input: str):
-        """
-        Used to power the run function to start updates
-        TODO: Determine how this will work with the streamlit frontend, and if this is needed
-        """
+        user_msg = {"role": "user", "content": user_input}
+        messages = [ user_msg ]
+        config = {"configurable": {"thread_id": "1"}}
+        return self.graph.stream(
+            {"messages": messages},
+            config,
+            stream_mode="messages",
+        )
+
 
 
 
