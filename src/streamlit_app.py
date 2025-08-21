@@ -11,32 +11,40 @@ from chatbot import chatbot
 
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
+
+# Setting up LangSmith tracing
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
-os.environ["LANGCHAIN_API_KEY"] = "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"
+os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 os.environ["LANGCHAIN_PROJECT"] = "pr-ample-infix-5"
 
-st.title("Quickstart App")
+st.title("Chatbot Streamlit Application")
 
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# # Initialize the chatbot
-# llm = ChatOllama(
-#     model="llama3.2",
-#     temperature=0,
-# )
-
-# https://platform.openai.com/settings/organization/usage
-llm = ChatOpenAI(
-    model="gpt-4o",
+# Initialize the chatbot
+llm = ChatOllama(
+    model="llama3.2",
     temperature=0,
-    max_tokens=None,
-    timeout=None,
-    max_retries=2,
 )
 
+# https://platform.openai.com/settings/organization/usage
+# llm = ChatOpenAI(
+#     model="gpt-4o",
+#     temperature=0,
+#     max_tokens=None,
+#     timeout=None,
+#     max_retries=2,
+# )
+
+if isinstance(llm, ChatOpenAI):
+    st.caption("Model: GPT-4o (OpenAI)")
+elif isinstance(llm, ChatOllama):
+    st.caption(f"Model: {llm.model} (Ollama)")
+else:
+    st.caption("Model: Unknown")
 
 # Initialize Arxiv retriever
 retriever = ArxivRetriever(
