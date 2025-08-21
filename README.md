@@ -10,6 +10,11 @@ A Streamlit-powered chatbot application that supports both OpenAI GPT and Ollama
 - **Model Switching:** Subtitle displays which model is currently active.
 - **LangSmith Tracing:** Optional tracing for debugging and analytics.
 
+<p align="center">
+    <img src="assets/ui-screenshot.png" alt="Picture of the streamlit UI chat window" width="430"/>
+    <br>
+</p>
+
 ## Setup
 
 1.**Clone the repository:**
