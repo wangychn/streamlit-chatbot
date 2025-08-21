@@ -20,8 +20,8 @@ A Streamlit-powered chatbot application that supports both OpenAI GPT and Ollama
 1.**Clone the repository:**
 
 ```bash
-   git clone <your-repo-url>
-   cd chatbot-basic
+   git clone https://github.com/wangychn/streamlit-chatbot.git
+   cd streamlit-chatbot
 ```
 
 2.**Install dependencies:**
